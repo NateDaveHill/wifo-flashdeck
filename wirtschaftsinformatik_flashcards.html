@@ -1,0 +1,214 @@
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--font-sans); }
+.fc-app { padding: 1rem 0; }
+.fc-header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 1.25rem; }
+.fc-title { font-size: 15px; font-weight: 500; color: var(--color-text-primary); flex: 1; }
+.fc-stats { font-size: 13px; color: var(--color-text-secondary); }
+.fc-filters { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 1.25rem; }
+.fc-chip { font-size: 12px; padding: 4px 10px; border-radius: 999px; border: 0.5px solid var(--color-border-secondary); background: transparent; color: var(--color-text-secondary); cursor: pointer; transition: all 0.15s; }
+.fc-chip.active { background: #EEEDFE; border-color: #AFA9EC; color: #3C3489; }
+.fc-progress { height: 4px; background: var(--color-background-secondary); border-radius: 2px; margin-bottom: 1.5rem; overflow: hidden; }
+.fc-progress-bar { height: 100%; background: #7F77DD; border-radius: 2px; transition: width 0.3s; }
+.fc-scene { perspective: 1000px; width: 100%; min-height: 200px; cursor: pointer; margin-bottom: 1.25rem; }
+.fc-card { width: 100%; min-height: 200px; position: relative; transform-style: preserve-3d; transition: transform 0.45s cubic-bezier(0.4,0,0.2,1); border-radius: var(--border-radius-lg); }
+.fc-card.flipped { transform: rotateY(180deg); }
+.fc-face { position: absolute; width: 100%; min-height: 200px; backface-visibility: hidden; border-radius: var(--border-radius-lg); border: 0.5px solid var(--color-border-tertiary); background: var(--color-background-primary); padding: 1.25rem 1.5rem; display: flex; flex-direction: column; }
+.fc-back { transform: rotateY(180deg); }
+.fc-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--color-text-tertiary); margin-bottom: 0.5rem; }
+.fc-lesson-badge { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 999px; background: #EEEDFE; color: #534AB7; margin-bottom: 0.75rem; border: 0.5px solid #AFA9EC; }
+.fc-question { font-size: 17px; font-weight: 500; color: var(--color-text-primary); line-height: 1.5; flex: 1; display: flex; align-items: center; }
+.fc-answer { font-size: 15px; color: var(--color-text-primary); line-height: 1.6; flex: 1; display: flex; align-items: flex-start; }
+.fc-hint { font-size: 13px; color: var(--color-text-tertiary); margin-top: auto; padding-top: 0.75rem; }
+.fc-controls { display: flex; align-items: center; gap: 10px; }
+.fc-btn { flex: 1; padding: 9px; border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); background: transparent; color: var(--color-text-primary); font-size: 14px; cursor: pointer; transition: background 0.15s; }
+.fc-btn:hover { background: var(--color-background-secondary); }
+.fc-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.fc-shuffle { padding: 9px 14px; border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); background: transparent; color: var(--color-text-secondary); font-size: 13px; cursor: pointer; }
+.fc-shuffle:hover { background: var(--color-background-secondary); }
+.fc-known-row { display: flex; gap: 8px; margin-top: 0.75rem; }
+.fc-known-btn { flex: 1; padding: 7px; border-radius: var(--border-radius-md); border: 0.5px solid var(--color-border-secondary); background: transparent; font-size: 13px; cursor: pointer; transition: background 0.15s; color: var(--color-text-secondary); }
+.fc-known-btn.yes:hover { background: #EAF3DE; border-color: #97C459; color: #3B6D11; }
+.fc-known-btn.no:hover { background: #FAECE7; border-color: #F09595; color: #993C1D; }
+.fc-counter { font-size: 13px; color: var(--color-text-secondary); text-align: center; margin-top: 0.5rem; }
+</style>
+
+<div class="fc-app">
+  <div class="fc-header">
+    <span class="fc-title">Wirtschaftsinformatik — Flashcards</span>
+    <span class="fc-stats" id="stats">0 / 0</span>
+  </div>
+  <div class="fc-filters" id="filters"></div>
+  <div class="fc-progress"><div class="fc-progress-bar" id="progress-bar" style="width:0%"></div></div>
+
+  <div class="fc-scene" id="scene" onclick="flipCard()">
+    <div class="fc-card" id="card">
+      <div class="fc-face fc-front">
+        <span class="fc-lesson-badge" id="badge">Lektion 1</span>
+        <div class="fc-label">Frage</div>
+        <div class="fc-question" id="question">Lade...</div>
+        <div class="fc-hint">Tippen zum Umdrehen</div>
+      </div>
+      <div class="fc-face fc-back">
+        <span class="fc-lesson-badge" id="badge2">Lektion 1</span>
+        <div class="fc-label">Antwort</div>
+        <div class="fc-answer" id="answer">—</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="known-row" class="fc-known-row" style="display:none">
+    <button class="fc-known-btn no" onclick="markCard(false)">Noch üben</button>
+    <button class="fc-known-btn yes" onclick="markCard(true)">Gewusst</button>
+  </div>
+
+  <div class="fc-controls" style="margin-top: 0.75rem;">
+    <button class="fc-btn" id="prevBtn" onclick="prevCard()">← Zurück</button>
+    <button class="fc-btn" id="nextBtn" onclick="nextCard()">Weiter →</button>
+    <button class="fc-shuffle" onclick="shuffleCards()">Mischen</button>
+  </div>
+  <div class="fc-counter" id="counter">Karte 1 von 72</div>
+</div>
+
+<script>
+const ALL_CARDS = [
+  {l:1, q:"Was ist der Unterschied zwischen Informatik und Wirtschaftsinformatik?", a:"Die Informatik befasst sich mit Computern und deren Verarbeitung von Informationen. Die Wirtschaftsinformatik vereint Informatik mit Wirtschaftswissenschaft – sie entwickelt IT-Systeme für betriebswirtschaftliche Fragestellungen. Der Wirtschaftsinformatiker ist das Bindeglied zwischen beiden Disziplinen."},
+  {l:1, q:"Was versteht man unter einem Informationssystem?", a:"Ein Informationssystem besteht aus Menschen und Maschinen, die durch Kommunikationsbeziehungen miteinander verbunden sind und Informationen erzeugen und/oder nutzen. Es ist ein soziotechnisches System, das sowohl das technische Anwendungssystem als auch das soziale Umfeld (Personen, Prozesse) umfasst."},
+  {l:1, q:"Was ist ein soziotechnisches System? Nenne ein Beispiel.", a:"Ein System, bei dem technische und soziale Teilkomponenten untrennbar zusammenspielen. Beispiel: Ein Flughafen – Passagiere und Mitarbeitende (soziales System) nutzen viele Technologien (technisches System) für einen sicheren Betrieb. Ein Informationssystem ist ebenfalls ein soziotechnisches System."},
+  {l:1, q:"Nenne und erkläre die vier Teilgebiete der Informatik.", a:"1. Theoretische Informatik: Grundlagen, Algorithmen, formale Sprachen. 2. Technische Informatik: Schnittstelle zwischen Informatik und Elektrotechnik, Hardware- und Softwarekomponenten. 3. Praktische Informatik: Erreichbarkeit, Zuverlässigkeit, Effizienz von Anwendungen. 4. Angewandte Informatik: direkter Kontakt mit Anwendern, informationsverarbeitende Systeme."},
+  {l:1, q:"Erkläre den Unterschied zwischen Zeichen, Daten, Information und Wissen.", a:"Zeichen → in Kontext gesetzt → Daten → strukturiert/verknüpft → Information → kombiniert und angewendet → Wissen. Beispiel: '21031975' (Zeichen/Daten) → 'Geburtsdatum 21.03.1975' (Information) → Wissen über die Person."},
+  {l:1, q:"Was ist Datenmanagement und welche Aspekte umfasst es?", a:"Datenmanagement umfasst alle konzeptionellen, organisatorischen und technischen Aktivitäten zur Maximierung des Nutzens aus Daten. Wichtige Aspekte: Datenqualität (Korrektheit, Aktualität), Datenschutz (Schutz personenbezogener Daten), Datenkonsistenz (Widerspruchsfreiheit), Data Lifecycle Management (DLM, von Erfassung bis Löschen)."},
+  {l:1, q:"Was ist Prozessmanagement und welche Modellierungssprachen werden eingesetzt?", a:"Prozessmanagement umfasst das Gestalten, Ausführen, Steuern und Optimieren von Geschäftsprozessen. Etablierte Modellierungssprachen: EPK (Ereignisgesteuerte Prozessketten), eEPK, UML-Diagramme, BPMN (Business Process Model and Notation)."},
+  {l:1, q:"Was ist Business Intelligence (BI) und welche vier Analysearten gibt es?", a:"BI ist die Aufbereitung und Analyse von Daten mit IT-gestützten Systemen zur Entscheidungsunterstützung. 4 Analysearten: 1. Descriptive Analytics (Was ist passiert?), 2. Diagnostic Analytics (Warum ist es passiert?), 3. Predictive Analytics (Was wird passieren?), 4. Prescriptive Analytics (Was soll getan werden?)."},
+  {l:1, q:"Was ist der Unterschied zwischen Predictive und Prescriptive Analytics?", a:"Predictive Analytics berechnet Wahrscheinlichkeiten für zukünftige Ereignisse auf Basis historischer Daten (Vorhersage). Prescriptive Analytics geht einen Schritt weiter: Es quantifiziert die Auswirkungen verschiedener Handlungsoptionen und gibt konkrete Handlungsempfehlungen."},
+  {l:1, q:"Was ist Advanced Analytics und welche Methoden umfasst es?", a:"Advanced Analytics ist zukunftsorientiert und umfasst Predictive und Prescriptive Analytics. Es setzt fortgeschrittene Methoden ein (Data Mining, Netzwerkanalysen, neuronale Netzwerke) und verwendet automatisierte Algorithmen, um Muster in Daten zu erkennen und Vorhersagen zu treffen."},
+  {l:2, q:"Wie werden Informationen in digitalen Systemen grundlegend gespeichert?", a:"Informationen werden binär gespeichert – als Abfolgen von 0 und 1. Ein Bit (Binary Digit) ist die kleinste Einheit. Physikalisch realisiert z.B. durch: Lichtschalter (an/aus), Festplatten (magnetische Zustände), Blu-Ray (Erhöhungen/Vertiefungen), optische Datenträger."},
+  {l:2, q:"Was ist die Boolsche Algebra und welche drei Grundoperatoren hat sie?", a:"Die Boolsche Algebra ist eine algebraische Struktur mit den Elementen 0 und 1. Die drei Grundoperatoren: UND (beide Werte müssen 1 sein), ODER (mindestens ein Wert muss 1 sein), NICHT (negiert den Wert – 0 wird zu 1, 1 wird zu 0). Alle heutigen Prozessoren basieren auf diesen Operatoren."},
+  {l:2, q:"Was ist ASCII und wofür wird es verwendet?", a:"ASCII (American Standard Code for Information Interchange) ist eine Zeichenkodierungstabelle. Sie umfasst 128 Zeichen (33 nicht-druckbar, 95 druckbar), jedem Zeichen wird ein 7-Bit-Muster zugeordnet. Verwendet zur Darstellung von Buchstaben, Ziffern und Sonderzeichen im binären System."},
+  {l:2, q:"Was ist die Von-Neumann-Architektur und welche 5 Kernelemente hat sie?", a:"Von Neumann (1945) entwickelte das Konzept, Programme und Daten im gleichen Speicher abzulegen. Die 5 Elemente: 1. Speicherwerk (RAM), 2. Steuerwerk (Teil der CPU, Koordination), 3. Rechenwerk (ALU, Berechnungen), 4. Ein-/Ausgabewerk (Schnittstelle zur Umgebung), 5. Bus-System (Kommunikation zwischen Komponenten)."},
+  {l:2, q:"Was ist der Von-Neumann-Flaschenhals?", a:"Da sowohl Programmbefehle als auch Daten über denselben Bus übertragen werden, kann der Bus zum Engpass werden. Die CPU muss abwechselnd Programmbefehle und Daten anfordern, was die Rechengeschwindigkeit begrenzt. Lösung: schnelle Pufferspeicher (Cache), die wiederholte Zugriffe auf langsamen Speicher vermeiden."},
+  {l:2, q:"Was ist ein verteiltes Softwaresystem? Nenne ein Beispiel.", a:"Ein verteiltes Softwaresystem funktioniert nur im Zusammenspiel mehrerer über ein Kommunikationsnetz verbundener Rechner. Beispiel: Ein Onlineshop – die Rechner der Kunden kommunizieren über das Internet mit den Servern des Händlers (Suche, Warenkorb, Bestellung, Zahlung = Nachrichtenaustausch)."},
+  {l:2, q:"Was ist der Unterschied zwischen Client und Server?", a:"Server bieten Funktionen (Services) an, die andere Rechner über das Netz aufrufen können (z.B. Suchmaschinen, E-Mail-Provider). Clients nehmen diese Dienste in Anspruch (z.B. Browser beim Online-Einkauf). Rollen beziehen sich nur auf Dienstanbieter/-nehmer – Hardware spielt keine Rolle, ein Laptop kann Server werden."},
+  {l:2, q:"Was sind die Bestandteile eines Kommunikationsnetzes?", a:"1. Physikalische Komponenten zur Datenübertragung: Kabel, elektromagnetische Wellen, optische Signale. 2. Technische Komponenten zur Datenvermittlung: Router, Switches, Repeater, Bridges. 3. Netzwerkschnittstellen: verbinden Rechner mit dem Netz (Ethernet-Adapter, Bluetooth)."},
+  {l:2, q:"Was ist der Unterschied zwischen OSI- und TCP/IP-Referenzmodell?", a:"Beide beschreiben Netzwerkarchitekturen als Schichtenmodelle. OSI hat 7 Schichten (detaillierter, allgemeingültig, theoretisches Modell). TCP/IP hat 4 Schichten (weniger detailliert, aber praktisch überall verwendet). Protokoll = Funktion zum Codieren/Decodieren von Nachrichten in einer Schicht."},
+  {l:2, q:"Was ist Service-orientierte Architektur (SOA)?", a:"SOA stellt Services in den Mittelpunkt – Dienste bilden Geschäftsprozesse ab und werden über definierte Schnittstellen bereitgestellt. Rollen: Dienstanbieter, Dienstnutzer, Serviceverzeichnis (SOA-Dreieckmodell). Technologien: REST (HTTP-basiert) und SOAP (XML-basiert). Vorteil: Wiederverwendbarkeit von Services."},
+  {l:2, q:"Erkläre die drei Cloud-Servicemodelle: SaaS, PaaS, IaaS.", a:"SaaS (Software as a Service): Software on-demand über Browser, pay-as-you-go. PaaS (Platform as a Service): Plattform und Werkzeuge für Entwickler ohne eigene Infrastruktur. IaaS (Infrastructure as a Service): On-demand IT-Infrastruktur (Netzwerke, Speicher, Rechner) mieten; Kunde verwaltet Betriebssystem selbst."},
+  {l:2, q:"Was sind die vier Cloud-Deployment-Modelle?", a:"Public Cloud: für jedermann zugänglich, pay-as-you-go (z.B. Gmail). Private Cloud: nur für eine Organisation, Wartung durch Anbieter. Hybrid Cloud: Kombination aus mehreren Private/Public Clouds über Schnittstellen. Community Cloud: von einer Interessengemeinschaft geteilt (z.B. Forschungsprojekte)."},
+  {l:3, q:"Welche 5 Phasen hat der Softwarelebenszyklus?", a:"1. Planung: Aktivitäten vor dem Projektstart (Bedarfsermittlung, Make-or-Buy, Ressourcenplanung). 2. Entwicklung: Erstellung des Systems (Requirements Engineering, Architektur, Implementierung, QS). 3. Betrieb: Installation und Betreiben in der Zielumgebung. 4. Wartung: Fehlerkorrektur und Weiterentwicklung. 5. Abschaltung: System außer Betrieb nehmen."},
+  {l:3, q:"Was ist eine Make-or-Buy-Entscheidung?", a:"Nach der Bedarfsermittlung wird entschieden: Gibt es fertige Lösungen (Buy)? Gibt es Standardprodukte, die angepasst werden können? Oder muss neu entwickelt werden (Make)? Kriterien: Kosten, Produktqualität, Support, Mitarbeiterverfügbarkeit. Beispiele Standardprodukte: SAP Business Suite, Oracle E-Business Suite."},
+  {l:3, q:"Was sind die Kernaktivitäten der Entwicklungsphase (Software Engineering)?", a:"1. Requirements Engineering: fachliche Anforderungen ermitteln und verfeinern. 2. Spezifikation: Eigenschaften dokumentieren. 3. Architektur: internen Aufbau festlegen. 4. Implementierung: Programmcode schreiben. 5. Qualitätssicherung: Testen in verschiedenen Teststufen (Komponenten-, Integrations-, Systemtest)."},
+  {l:3, q:"Was sind typische Gründe für die Abschaltung eines Softwaresystems?", a:"1. Ablösung durch neue Systeme (Altsysteme). 2. Zusammenführung von Anwendungen nach Unternehmensfusionen. 3. Aufgeben von Geschäftsfeldern. Aktivitäten bei Abschaltung: Herauslösung aus Anwendungslandschaft, Migration von Daten, Verträge kündigen, Personal weiterqualifizieren."},
+  {l:3, q:"Warum übersteigen Wartungskosten oft die Entwicklungskosten?", a:"Der Wartungsaufwand übersteigt die Erstellungskosten im gesamten Lebenszyklus um den Faktor 2–4. Bei 500.000€ Entwicklungskosten sind 1–2 Mio.€ Wartungskosten realistisch. Ursachen: Fehlerkorrektur, neue Anforderungen, technologische Weiterentwicklung, Ressourcenoptimierung. Releasepläne koordinieren Wartungsarbeiten."},
+  {l:3, q:"Was passiert in der Betriebsphase und welcher Zielkonflikt entsteht?", a:"In der Betriebsphase wird das System installiert, integriert und in Betrieb genommen. Qualitätsanforderungen: Sicherheit, Verfügbarkeit, Skalierbarkeit. Der Zielkonflikt: Entwicklung will schnell neue Funktionen liefern – Betrieb will stabile, zuverlässige Systeme. Stichwort: DevOps versucht diesen Konflikt zu lösen."},
+  {l:4, q:"Welche vier Kategorien von betrieblichen Informationssystemen gibt es?", a:"1. Kommunikationssysteme: unterstützen zwischenmenschliche Kommunikation (Teams, Zoom, Lync). 2. Querschnittssysteme: Standardsoftware (Word, Excel, PowerPoint, LibreOffice). 3. Operative Systeme: unterstützen Geschäftsprozesse, stark angepasst (z.B. ERP, CRM). 4. Dispositive Systeme: Entscheidungsunterstützung (Data Warehouse, BI-Lösungen)."},
+  {l:4, q:"Was ist ein ERP-System und welche typischen Komponenten hat es?", a:"ERP (Enterprise Resource Planning) ist ein operatives System zur unternehmensweiten Integration von Geschäftsprozessen. Typische Komponenten: Materialwirtschaft, Produktion/Vertrieb, Personalverwaltung, Finanzwesen/Rechnungswesen. Technisch: Benutzeroberfläche → Integrations- und Anwendungsplattform → Datenbanksysteme."},
+  {l:4, q:"Was ist eine Middleware und wozu wird sie bei ERP eingesetzt?", a:"Eine Middleware ist ein anwendungsneutrales Programm, das zwischen Anwendungen vermittelt. Bei ERP verbindet sie über ein Netzwerk externe Systeme (Drittanbieter) mit der Integrations- und Anwendungsplattform. Vorteil: Standardlösungen UND individuelle Lösungen können integriert werden (z.B. spezialisierte Personalplanung)."},
+  {l:4, q:"Was ist der Unterschied zwischen implizitem und explizitem Wissen?", a:"Implizites Wissen: Erfahrungswissen, beruht auf persönlichen Erfahrungen, kann nicht direkt weitergegeben werden (z.B. Fahrradfahren). Explizites Wissen: formales Wissen, das schriftlich, mündlich oder technisch weitergegeben werden kann (z.B. Anleitung zum Reifenwechsel)."},
+  {l:4, q:"Welche 7 Schritte hat der Wissensmanagementprozess?", a:"1. Wissensidentifikation (Quellen finden). 2. Wissenserwerb (Dokumentationen, Kommunikation). 3. Wissensentwicklung/Strukturierung (verschlagworten, systematisieren). 4. Darstellen des Wissens (zielgruppengerecht aufbereiten). 5. Wissensverteilung (CMS, soziale Netzwerke). 6. Wissensnutzung (Suche, Volltextsuche). 7. Wissensspeicherung (Wissensdatenbanken)."},
+  {l:4, q:"Welche 5 Kategorien von Kollaborationssystemen gibt es?", a:"1. Terminverwaltung (Kalender teilen, Meetings planen – z.B. Outlook). 2. Dateiverwaltung (Cloud-Speicher – z.B. Dropbox, OneDrive). 3. Dokumentenbearbeitung (gleichzeitig bearbeiten, Änderungen in Echtzeit). 4. Projektverwaltung (Aufgaben planen – z.B. Microsoft Project, Trello). 5. Konferenzsysteme (Video/Chat – z.B. Teams, Zoom)."},
+  {l:4, q:"Was ist ein Data Warehouse und welche drei Architekturen gibt es?", a:"Das Data Warehouse ist das Herzstück eines analytischen Informationssystems – eine separierte physische Datenbank mit bereinigten Daten. 3 Architekturen: 1. Zentrales DWH (eine DB, einfache Datenhaltung, geringe Netzauslastung). 2. Verteiltes DWH (mehrere DBs, schnellerer Zugriff, aber Synchronisationsaufwand). 3. DWH mit Data Marts (funktionsspezifische Erweiterungen)."},
+  {l:4, q:"Was ist OLAP und welche 5 Analyseoperationen gibt es?", a:"OLAP (Online Analytical Processing) analysiert Daten in mehrdimensionalen Würfeln (Dimensionen z.B. Zeit, Region, Produkt). Operationen: Roll-up (aggregieren, z.B. Monate → Jahr), Drill-down (feiner auflösen, Jahr → Monate), Slice (Ausschnitt herausschneiden), Dice (Würfel in mehreren Dimensionen zuschneiden), Pivot (Würfel drehen)."},
+  {l:4, q:"Was ist Data Mining und welche 4 Methoden gibt es?", a:"Data Mining: automatisiertes Entdecken von Zusammenhängen, Mustern und Trends in großen Datensätzen. 4 Methoden: 1. Klassifikation (Datensätze Klassen zuordnen, z.B. Entscheidungsbaum). 2. Assoziation (Zusammenhänge verknüpfen, z.B. Warenkorbanalyse). 3. Segmentierung/Clustering (Gruppen nach Ähnlichkeit). 4. Prognose (Vorhersage zukünftiger Werte)."},
+  {l:4, q:"Was ist Text Mining und welche Anwendungen hat es?", a:"Text Mining extrahiert strukturierte Daten aus unstrukturierten Textquellen (E-Mails, Berichte, Social Media, Blogs). Anwendungen: Analyse von politischen Reden, Suche nach juristischen Urteilen, Sentiment-Analyse (positive/negative Bewertungen), KI-gestützte Mustererkennung in Texten."},
+  {l:5, q:"Was sind digitale Güter und welche 4 Digitalisierungsgrade gibt es?", a:"Digitale Güter haben keinen physischen Anteil, können komplett über das Internet vertrieben werden. 4 Grade: 1. Digitale Güter (komplett digital, z.B. E-Books, Streaming). 2. Semi-digitale Güter (digital + physische Dienstleistung oder Medium, z.B. Software auf DVD). 3. Semi-physische Güter (physisch, aber digital vertrieben). 4. Physische Güter (vollständig physisch)."},
+  {l:5, q:"Welche spezifischen Eigenschaften haben digitale Güter im Vergleich zu physischen?", a:"Digitale Güter: niedrige Vervielfältigungskosten, keine Abnutzung, vielfacher Besitz möglich, beliebig teilbar ohne Wertverlust, leichte Distribution, hohe Gefahr unerlaubter Weitergabe, Preis/Wert schwer bestimmbar, nur über 2 Sinne wahrnehmbar (Sehen, Hören), leichte nachträgliche Veränderung."},
+  {l:5, q:"Was ist das Moore'sche Gesetz und welche Bedeutung hat es für die Digitalwirtschaft?", a:"Gordon Moore (Intel-Mitgründer) formulierte 1965: Die Komplexität integrierter Schaltkreise verdoppelt sich regelmäßig bei minimalen Komponentenkosten. Es bildet die Grundlage für die digitale Revolution und die exponentielle technologische Entwicklung, die eine Internetökonomie erst ermöglicht."},
+  {l:5, q:"Was sind 'First Copy Costs' / Huntley's Law?", a:"Bei digitalen Produkten entstehen bei der Erstellung einmalig hohe Fixkosten (First Copy Costs). Beim Vertrieb entstehen dann nur geringe Kosten. Beispiel: Musikproduktion kostet viel (Fixkosten), aber der Verkauf weiterer digitaler Kopien ist fast kostenfrei. Diese Gesetzmäßigkeit nennt man auch 'Huntley's Law'."},
+  {l:5, q:"Was sind die 4 Entwicklungsphasen digitaler Dienstleistungen?", a:"Dienstleistung 1.0: geringe technische Unterstützung (Friseur, Haushaltshilfe). Dienstleistung 2.0: arbeitsteilige Massenproduktion (Finanzdienstleistungen, Logistik). Dienstleistung 3.0: IT-Unterstützung (E-Commerce, Mobile Services). Dienstleistung 4.0: cyberphysische Systeme (IoT, Assistenzsysteme, Apps)."},
+  {l:5, q:"Was ist EDI und welche Vorteile hat es?", a:"EDI (Electronic Data Interchange): elektronischer Geschäftsverkehr zwischen Unternehmen, Computer-zu-Computer mit minimaler menschlicher Einwirkung. Vorteile: höhere Verarbeitungsgeschwindigkeit, keine Doppelerfassung, weniger Fehler. Nachteile: hohe Investitionskosten, erfordert umfassende Prozessänderungen."},
+  {l:5, q:"Welche 3 Sicherheitsanforderungen haben elektronische Märkte?", a:"1. Geheimhaltung: Daten dürfen nur den bestimmten Empfänger erreichen, nicht von Dritten einsehbar. 2. Authentizität: Sicherstellung, dass die Nachricht tatsächlich vom angegebenen Absender stammt. 3. Integrität: Sicherstellung, dass Daten nicht verändert wurden. Realisiert durch symmetrische (Secret-Key) oder asymmetrische (Public-Key) Verschlüsselung."},
+  {l:5, q:"Was sind die 4 Phasen einer elektronischen Markttransaktion?", a:"1. Informationsphase: Austausch von Produktspezifikation, Preis, Konditionen. 2. Vereinbarungsphase: Konkretisierung der Kaufabsicht → rechtmäßiger Vertrag. 3. Abwicklungsphase: Umsetzung der Vertragspflichten (Lieferzeit, Kosten, Reklamation). 4. After-Sales-Phase: Kundenbindung durch Serviceleistungen und Preisminderung."},
+  {l:6, q:"Welche Bereiche umfasst das IT-Management?", a:"IT-Strategie (aus Unternehmensstrategie abgeleitet), IT-Controlling (Kennzahlen für Ziele), IT-Servicemanagement (ITSM), Ressourcenmanagement (Hardware, Software, Personal), Portfoliomanagement (ITPM – Nutzen und Risiken von IT-Projekten), IT-Governance (Ausrichtung auf Unternehmensstrategie), IT-Risikomanagement, Compliancemanagement."},
+  {l:6, q:"Was ist IT-Governance und wie unterscheidet sie sich vom IT-Management?", a:"IT-Governance richtet die IT auf die Unternehmensstrategie aus und beantwortet: Was kann IT für den Unternehmenserfolg bewirken? IT-Management beantwortet: Wie sollen IT-Lösungen eingesetzt werden? IT-Governance umfasst strategische Entscheidungen zu IT-Infrastruktur, IT-Leistungen und IT-Risiken sowie gesetzliche Compliance."},
+  {l:6, q:"Was ist EAM (Enterprise Architecture Management) und welche 4 Schritte hat die Aufnahme?", a:"EAM analysiert, plant und gestaltet IT-Systeme entsprechend ihrer Organisationsstruktur. 4 Schritte: 1. Elemente für den Endbenutzer abbilden (Fachlichkeit + Technik). 2. Anwendungen in Geschäftskontext setzen. 3. Austauschbeziehungen zwischen Applikationen beschreiben. 4. Technischen Unterbau (Server, Standorte) beschreiben."},
+  {l:6, q:"Was ist das Zachmann-Framework?", a:"1987 von John Zachmann entwickeltes konzeptionelles Framework zur Entwicklung domänenneutraler IT-Architekturen. Es definiert unterschiedliche Perspektiven (Rollen) auf eine IT-Architektur – jeder Stakeholder erhält eine eigene Sicht. Es ist ein generisches Framework mit begrenztem Formalisierungsgrad und ohne Methodenvorgaben, aber mit Zielaufzeigung."},
+  {l:6, q:"Was ist TOGAF und was ist sein Hauptelement?", a:"TOGAF (The Open Group Architecture Framework) ist ein Rahmenwerk für das Entwerfen, Planen, Implementieren und Warten von Enterprise-Architekturen, seit 1995 von der Open Group weiterentwickelt. Hauptelement: die Architecture Development Method (ADM) – ein iteratives Prozessmodell mit einer Vorbereitungsphase und Phasen A bis H."},
+  {l:6, q:"Erkläre die drei IT-Servicemanagement-Frameworks: eTOM, COBIT, ITIL.", a:"eTOM: speziell für Telekommunikation, Fokus auf Prozesstransparenz über Unternehmen hinweg. COBIT: Top-down, an Unternehmenszielen ausgerichtet, 5 Grundsätze, 40 Governance-/Managementziele, international für IT-Governance anerkannt. ITIL: am weitesten verbreitet, fokussiert auf Erbringung von IT-Dienstleistungen, aktuell Version 4 mit Service Value System (SVS)."},
+  {l:6, q:"Was ist das Service Value System (SVS) in ITIL 4?", a:"Das SVS in ITIL 4 ersetzt den bisherigen Service Lifecycle und soll den Nutzen für Kunden besser hervorheben. Es enthält die Service Value Chain (SVC) mit Aktivitäten Plan, Improve, Engage, Design&Transition, Obtain/Build, Delivery&Support. Auslöser: Demand (Kundenbedarf) und Opportunity (neue Chancen). Umfasst 7 Leitprinzipien und 34 Practices."},
+  {l:6, q:"Was sind die 5 COBIT-2019-Domänen?", a:"1. EDM – Evaluieren, Vorgeben und Überwachen. 2. APO – Anpassen, Planen und Organisieren. 3. BAI – Aufbauen, Beschaffen und Implementieren. 4. DSS – Bereitstellen, Betreiben und Unterstützen. 5. MEA – Überwachen, Evaluieren und Beurteilen. COBIT 2019 definiert insgesamt 40 Governance- und Managementziele."},
+  {l:6, q:"Was ist IT-Projektmanagement und was sind die 10 PMBOK-Wissensgebiete?", a:"IT-Projektmanagement steuert komplexe IT-Projekte durch Planung, Kontrolle und Steuerung. 10 PMBOK-Gebiete: Integrationsmanagement, Inhalts- und Umfangsmanagement, Zeit-/Terminmanagement, Kostenmanagement, Qualitätsmanagement, Personalmanagement, Kommunikationsmanagement, Risikomanagement, Beschaffungsmanagement, Stakeholder-Management."},
+  {l:6, q:"Was sind die 4 Werte des agilen Manifests (Extreme Programming)?", a:"1. Individuen und Interaktionen > Prozesse und Werkzeuge. 2. Funktionierende Software > ausgedehnte Dokumentation. 3. Zusammenarbeit mit Kunden > Vertragsverhandlungen. 4. Eingehen auf Änderungen > strikter Planverfolgung. Diese Werte stellen Kunden und Produkt in den Vordergrund."},
+  {l:6, q:"Was ist Scrum? Erkläre Rollen, Ereignisse und Artefakte.", a:"Scrum ist ein agiles Rahmenwerk. Rollen: Product Owner (Produktverantwortung, Backlog), Scrum Master (Coach, Hindernisse beseitigen), Entwickler-Team (selbstorganisierend). Ereignisse: Sprint Planning, Daily Scrum (max. 15 min), Sprint Review, Sprint Retrospektive. Artefakte: Product Backlog, Sprint Backlog, Product Increment."},
+  {l:6, q:"Was ist der Unterschied zwischen Wasserfall- und agilem Vorgehensmodell?", a:"Wasserfallmodell: sequenziell, Top-down, komplett geplant, phasengetrieben. Jede Phase muss abgeschlossen sein, bevor die nächste beginnt. Vorteil: klare Strukturen. Nachteil: starr, reagiert schwer auf Änderungen. Agil (z.B. Scrum): iterativ, Kundenfeedback fließt direkt ein, Änderungen erwünscht, selbstorganisiertes Team. Vorteil: flexibel. Nachteil: höherer Kommunikationsaufwand."},
+  {l:6, q:"Was ist DevOps?", a:"DevOps steht für 'Development and Operations' – die Zusammenarbeit von Entwicklung und Betrieb. Es versucht den Zielkonflikt aufzulösen: Entwicklung will schnell neue Features liefern, Betrieb will stabile Systeme. DevOps ist ein Treiber für die ITIL-Aktualisierung von Version 3 auf 4, da es neue Anforderungen an IT-Service-Bereitstellung stellt."},
+  {l:1, q:"Was ist das IS-Management und welche Aufgaben hat es?", a:"Das IS-Management ist übergreifend bei der Entwicklung und Planung von Informationssystemen tätig. Aufgaben: organisatorische, koordinative und planerische Tätigkeiten für Planung, Entwicklung und Betrieb von IS. Es stellt sicher, dass Stakeholder-Interessen berücksichtigt werden. Umfasst: strategische IS-Planung, IS-Architektur, IS-Projektplanung, IS-Projekt."},
+  {l:2, q:"Was ist REST und was ist SOAP?", a:"REST (Representational State Transfer): Schnittstellen-Technologie basierend auf WWW-Infrastruktur und HTTP/HTTPS, Ausgabeformate: HTML, XML, JSON, Plain Text. SOAP (Simple Object Access Protocol): W3C-standardisiertes Netzwerkprotokoll für Datenaustausch zwischen Systemen, Datenformat meist XML, Übertragung via HTTP+TCP, SMTP oder JMS."},
+  {l:3, q:"Was ist die Produktivumgebung und wann wird sie genutzt?", a:"Die Produktivumgebung (auch Liveumgebung) ist die Hard- und Softwareumgebung, in der das System von den Anwendern zuverlässig genutzt werden kann. Das neue System wird erst nach Abschluss aller Tests an Produktivsysteme angeschlossen – damit werden während der Entwicklung keine echten Daten versehentlich verändert."},
+  {l:4, q:"Was sind operative vs. dispositive Systeme?", a:"Operative Systeme unterstützen direkt Geschäftsprozesse und Aktivitäten (z.B. ERP, CRM) – stark auf Wertschöpfungsprozesse ausgerichtet. Dispositive Systeme unterstützen Planungs- und Entscheidungsprozesse durch bereinigte, verdichtete Daten aus operativen Systemen (z.B. Data Warehouse, BI-Lösungen) – Daten stehen im Vordergrund, nicht Prozesse."},
+  {l:5, q:"Was ist ein E-Marktplatz und was unterscheidet ihn von E-Procurement und E-Shop?", a:"E-Procurement: elektronische Beschaffung von Waren über das Internet (Unternehmen kauft ein). E-Shop: Schaufenster für Anbieter, Verkauf von Waren/Dienstleistungen über das Internet. E-Marktplatz: Plattform, die alle Phasen der Markttransaktionen elektronisch unterstützt, vereinfacht Informationsbeschaffung und schafft Gleichberechtigung der Marktpartner."},
+  {l:5, q:"Was ist der Unterschied zwischen Secret-Key- und Public-Key-Verfahren?", a:"Secret-Key (symmetrisch): Sender und Empfänger teilen einen gemeinsamen Schlüssel. Schnell und sicher, aber Schlüsselaustausch ist das Problem – bei vielen Partnern unpraktikabel. Public-Key (asymmetrisch): öffentlicher Schlüssel (allgemein bekannt) zum Codieren, privater Schlüssel (nur beim Empfänger) zum Decodieren. Sicherer für Internetkommunikation."},
+];
+
+const LESSONS = [
+  {id:0, label:'Alle'},
+  {id:1, label:'L1: Grundlagen'},
+  {id:2, label:'L2: Infosysteme'},
+  {id:3, label:'L3: Lebenszyklus'},
+  {id:4, label:'L4: Anwendungssysteme'},
+  {id:5, label:'L5: Digitale Märkte'},
+  {id:6, label:'L6: IT-Management'},
+];
+
+const lessonNames = {1:'Lektion 1', 2:'Lektion 2', 3:'Lektion 3', 4:'Lektion 4', 5:'Lektion 5', 6:'Lektion 6'};
+
+let activeLesson = 0;
+let deck = [];
+let idx = 0;
+let flipped = false;
+let known = new Set();
+let unknown = new Set();
+
+function buildDeck() {
+  deck = activeLesson === 0 ? [...ALL_CARDS] : ALL_CARDS.filter(c => c.l === activeLesson);
+  idx = 0; flipped = false;
+  document.getElementById('card').classList.remove('flipped');
+  render();
+}
+
+function render() {
+  if (!deck.length) return;
+  const c = deck[idx];
+  document.getElementById('badge').textContent = lessonNames[c.l];
+  document.getElementById('badge2').textContent = lessonNames[c.l];
+  document.getElementById('question').textContent = c.q;
+  document.getElementById('answer').textContent = c.a;
+  document.getElementById('stats').textContent = known.size + ' gewusst / ' + unknown.size + ' üben';
+  document.getElementById('counter').textContent = 'Karte ' + (idx+1) + ' von ' + deck.length;
+  const pct = deck.length > 1 ? (idx / (deck.length-1)) * 100 : 100;
+  document.getElementById('progress-bar').style.width = pct + '%';
+  document.getElementById('prevBtn').disabled = idx === 0;
+  document.getElementById('nextBtn').disabled = idx === deck.length-1;
+  document.getElementById('known-row').style.display = flipped ? 'flex' : 'none';
+}
+
+function flipCard() {
+  flipped = !flipped;
+  document.getElementById('card').classList.toggle('flipped', flipped);
+  document.getElementById('known-row').style.display = flipped ? 'flex' : 'none';
+}
+
+function nextCard() { if (idx < deck.length-1) { idx++; flipped=false; document.getElementById('card').classList.remove('flipped'); render(); } }
+function prevCard() { if (idx > 0) { idx--; flipped=false; document.getElementById('card').classList.remove('flipped'); render(); } }
+function markCard(k) { const key = deck[idx].q; if(k) { known.add(key); unknown.delete(key); } else { unknown.add(key); known.delete(key); } render(); if (idx < deck.length-1) nextCard(); }
+function shuffleCards() { for(let i=deck.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[deck[i],deck[j]]=[deck[j],deck[i]];} idx=0; flipped=false; document.getElementById('card').classList.remove('flipped'); render(); }
+
+function buildFilters() {
+  const f = document.getElementById('filters');
+  LESSONS.forEach(l => {
+    const b = document.createElement('button');
+    b.className = 'fc-chip' + (l.id===0?' active':'');
+    b.textContent = l.label;
+    b.onclick = () => {
+      activeLesson = l.id; known.clear(); unknown.clear();
+      document.querySelectorAll('.fc-chip').forEach(x=>x.classList.remove('active'));
+      b.classList.add('active');
+      buildDeck();
+    };
+    f.appendChild(b);
+  });
+}
+
+buildFilters();
+buildDeck();
+</script>
